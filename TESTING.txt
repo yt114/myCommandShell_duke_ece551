@@ -1,0 +1,362 @@
+***********************************************************
+			ReadMe
+***********************************************************
+The main function of myShell is in the myShell.cpp. The
+definition of used class and functions are in the
+ymy_shell_class.h file. Their implementations are in
+my_shell_class.cpp.
+
+The other programs used in testing includes  myecho.cpp
+, large_data.cpp and sortLines.c from assignment 053.
+
+
+I prodive a Makefile. Run make to compile all the source files.
+
+Then I test the following testcases which are all valgrind clean.
+
+
+***********************************************************
+		Testing ReadIn
+***********************************************************
+Uncomment myshell.PrintCommandList(); at line 17 of myShell.cpp
+and then Run make to see the parsed commands information.
+
+(1)Run ./myShell ./myShell
+   then first ^D to send EOF.
+   then Run exit.
+   Or
+   first Run exit
+   then  ^D to send EOF.
+You will see that it prints:
+CommandList size = 1
+CommandList [0]:
+argvs size=1
+argv0 :./myShell
+Output file= Inputfile= ErrorFile=
+myShell:/home/yt114/ece551/mp_miniproject $Program exited with status 0
+This is correct as Both exit and EOF can terminate ./myShell.
+
+(2) Run (no command)
+You will see that it prints:
+myShell:/home/yt114/ece551/mp_miniproject $
+ReadIn:Input command is empty
+myShell:/home/yt114/ece551/mp_miniproject $
+
+After invalid input, myShell waits for next input.
+
+(3)Run ls | cat> output1 2>error1 | wc<output1>wc_output1 2>error| echo a b\cd \e\\f\\\g\\\\h2 \ \ \ \$\| \2> OutOrErr|echo end
+You will see that it prints:
+CommandList size = 5
+CommandList [0]:
+argvs size=1
+argv0 :ls
+Output file= Inputfile= ErrorFile=
+CommandList [1]:
+argvs size=1
+argv0 :cat
+Output file=output1 Inputfile= ErrorFile=error1
+CommandList [2]:
+argvs size=1
+argv0 :wc
+Output file=wc_output1 Inputfile=output1 ErrorFile=error
+CommandList [3]:
+argvs size=6
+argv0 :echo
+argv1 :a
+argv2 :bcd
+argv3 :e\f\g\\h2
+argv4 :   $|
+argv5 :2
+Output file=OutOrErr Inputfile= ErrorFile=
+CommandList [4]:
+argvs size=2
+argv0 :echo
+argv1 :end
+Output file= Inputfile= ErrorFile=
+end
+Program exited with status 0
+
+which is correct because [reasons]
+1.CommandList size =5 as there are five commands: ls, cat, wc, echo, echo.
+2.For eacho CommandList [i]: argvs size gives its number of arguments.
+  CommandList [1][2] has only one arguments whch are their command names.
+3.For eacho CommandList [i]: argv0 is its command names.
+  The above are all correct.
+4.CommandList [3]: argv2 :bcd is correct as \c is escaped.
+  Similiarly, argv3 :e\f\g\\h2
+  argv4 :   $|
+  argv5 :2
+  As any character after \ is considered as excaped and thus preserved.
+5.CommandList [3]:Output file=OutOrErr Inputfile= ErrorFile=
+  This is correct as \2>OutOrErr is consided as excaped letter 2 and redirect >OutOrErr.
+
+(4) Run echo ThisIsPATH*PWD: $PATH*$PWD & ThisIsPWD]:$PATH]
+CommandList size = 1
+CommandList [0]:
+argvs size=5
+argv0 :echo
+argv1 :ThisIsPATH*PWD:
+argv2 :/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games*/home/yt114/ece551/mp_miniproject
+argv3 :&
+argv4 :ThisIsPWD]:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games]
+Output file= Inputfile= ErrorFile=
+ThisIsPATH*PWD: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games*/home/yt114/ece551/mp_miniproject & ThisIsPWD]:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games]
+Program exited with status 0
+
+This is correct as
+argv2: ./myShell takes $PATH*$PWD as an argument then parse it as two varibale $PATH and $PWD and replace them with variable values.
+argv4: ./myShell takes ThisIsPWD:$PATH] as an argument then replace varibale from $ to the first letter which is not alpha or number. 
+
+(5) Run echo $PATH_
+Run echo $2PATH
+Run echo $PA\TH
+You will see it prints:
+No such Var
+as their variable name afer parsed are:
+PATH_
+2PATH
+PA
+
+(6)Run echo a2>OutOrErrorA2|cat OutOrErrorA2
+CommandList size = 2
+CommandList [0]:
+argvs size=2
+argv0 :echo
+argv1 :a2
+Output file=OutOrErrorA2 Inputfile= ErrorFile=
+
+This is correct as this is how bash doed it, treating a2>file as
+an argument a2 and an redirected output file. 
+
+(7) Run a|
+Your will see that it prints:
+piple error : wrong format
+As myShell expect a second command after |.
+   Run a<
+   Run a >
+   Run a 2>
+   Run a $
+   Run $
+   Run a \
+   Run a \\\
+Your will see that it prints:
+Input command format is wrong
+   Run \
+wrong format
+***********************************************************
+   	   Testing RunCommand
+***********************************************************
+Now comment myshell.PrintCommandList(); at line 17 of myShell.cpp
+and then Run make.
+
+(1) Run ./sortLines< input1 >output3 2>error3|/home/yt114/ece551/mp_miniproject/myecho a b c d e f g
+You will see that it prints:
+argv[0]: /home/yt114/ece551/mp_miniproject/myecho
+argv[1]: a
+argv[2]: b
+argv[3]: c
+argv[4]: d
+argv[5]: e
+argv[6]: f
+argv[7]: g
+Program exited with status 0
+
+Along with new files: output3 containg sorted lines of input1 and an empty error3. 
+
+(2) Run ./nosuchCom a b c < input1 >output3 2>error4 | ./nosuchCom
+You will see that it prints:
+execve: No such file or directory
+Program exited with status 1
+
+This is correct as the terminal shows the second command error message.
+The error message of the first command is directed into error4 which contains:
+execve: No such file or directory
+
+    Run a \a
+You will see that it prints:
+Command a not found
+Program exited with status 1
+
+This is correct as myShell will look into $PATH if command don't contain /. 
+   Run nosuchCom
+You will see that it prints:
+Command no not found
+Program exited with status 1
+
+This is correct as nosuchCom does not exist in $PATH
+
+
+(3) Run ls | grep
+You will see it prints: 
+Usage: /bin/grep [OPTION]... PATTERN [FILE]...
+Try '/bin/grep --help' for more information.
+Program exited with status 2
+
+As grep fails, the status is 2.
+
+
+(4) Run set a$* value
+You will see that it prints:
+Error: illegal variable name
+    Run set
+    Run set a
+You will see that it prints:
+Error: empty variable name or value
+
+(5) Run set test_Var_1 Va*l&!
+    Run echo $test_Var_1
+You will see that it prints:
+Va*l&!
+Program exited with status 0
+    Run env
+You will not see test_Var_1= Va*l&! in the environment list. 
+
+
+    Run set newVar newValue
+    Run export newVar
+    Run env >Var1 | env > Var2 | env
+You will see Var1, Var2 and termianls contains the new environmrnt "newVar=newValue".
+This is correct as a child process inherates all environment variables of its parent. 
+
+(6) Run export test_Var_1
+    Run env
+and you will find: 
+test_Var_1=Va*l&!
+at the end of output
+
+   Run export
+you will see that it prints:
+Error: export empty variable name
+    
+   Run export aVarDoesNotExit
+you will see that it prints:
+No such Var
+   Run export a b
+you will see that it prints:
+Error: export more than one var
+
+(7) Run exit | exit| echo a
+You will see that it prints:
+a
+Program exited with status 0
+which is correct because
+exit in pipe only exits child process forked by the parent process.
+This is the way bash does.
+
+(8)Run cd
+I see that it prints:
+myShell:/home/yt114 $
+   Run cd ece551/mp_miniproject
+I see that it prints:
+myShell:/home/yt114/ece551/mp_miniproject $
+   Run cd a
+   Run cd ./a
+You see that it prints:
+cd error: colud not open argv[1]
+   Run cd a b
+You see that it prints:
+cd error !
+
+(9)Run cat TESTING.txt
+   or cat ./TESTING.txt
+   or cat /home/yt114/ece551/mp_miniproject/TESTING.txt
+ You will see that it prints TESTING.txt files.
+
+ Testing a file that doesn't exit
+ 
+ myShell:/home/yt114/ece551/mp_miniproject $cat aaa
+ /bin/cat: aaa: No such file or directory
+ Program exited with status 1
+ myShell:/home/yt114/ece551/mp_miniproject $cat ./aaa
+ /bin/cat: ./aaa: No such file or directory
+ Program exited with status 1
+ myShell:/home/yt114/ece551/mp_miniproject $cat /home/yt114/ece551/mp_miniproject/aaa
+ /bin/cat: /home/yt114/ece551/mp_miniproject/aaa: No such file or directory
+ Program exited with status 1
+
+(10)Run ./LargeData 2> LargeDataErr
+This command will generate a file naming LargeData.txt and a file naming LargeDataErr.
+
+     Run stat LargeDataErr
+
+You will see that it prints:
+File: 'LargeDataErr'
+    Size: 1510720	Blocks: 2952       IO Block: 4096   regular file
+    Device: fc00h/64512d	Inode: 106427601   Links: 1
+    Access: (0700/-rwx------)  Uid: ( 1115/   yt114)   Gid: ( 1118/   yt114)
+    Access: 2017-11-30 19:08:00.645264525 -0500
+    Modify: 2017-11-30 19:08:00.801265043 -0500
+    Change: 2017-11-30 19:08:00.801265043 -0500
+     Birth: -
+This is correct as ./LargeDat will use  std::cerr<<"This is larger data"
+to redirect error message into LargeDataErr.
+
+Run stat LargeData.txt     
+Run cat LargeData.txt | cat > LargeDataOut
+Run stat LargeDataOut
+
+You will see that it prints:	
+
+File: 'LargeData.txt'
+    Size: 1510720	Blocks: 2952       IO Block: 4096   regular file
+    Device: fc00h/64512d	Inode: 106427598   Links: 1
+    Access: (0664/-rw-rw-r--)  Uid: ( 1115/   yt114)   Gid: ( 1118/   yt114)
+    Access: 2017-11-30 18:48:59.639488036 -0500
+    Modify: 2017-11-30 18:30:14.337922585 -0500
+    Change: 2017-11-30 18:30:14.337922585 -0500
+     Birth: -
+
+File: 'LargeDataOut'
+    Size: 1510720	Blocks: 2952       IO Block: 4096   regular file
+    Device: fc00h/64512d	Inode: 115211375   Links: 1
+    Access: (0700/-rwx------)  Uid: ( 1115/   yt114)   Gid: ( 1118/   yt114)
+    Access: 2017-11-30 18:48:59.631487966 -0500
+    Modify: 2017-11-30 18:50:25.128186388 -0500
+    Change: 2017-11-30 18:50:25.128186388 -0500
+     Birth: -
+
+This size of this two file are identicial and thus the pipe can communicate in large data situation. 
+
+(11) Run ./myecho a b c | cat | cat > output4 2> error4
+You will see it prints:
+Program exited with status 0
+
+Run cat output4
+argv[0]: ./myecho
+argv[1]: a
+argv[2]: b
+argv[3]: c
+
+(12) Run cat < output4 | cat
+You will see that it prints:
+
+argv[0]: ./myecho
+argv[1]: a
+argv[2]: b
+argv[3]: c
+Program exited with status 0
+
+This is correct as output4 stores argv[0]: ./myecho
+argv[1]: a
+argv[2]: b
+argv[3]: c
+
+(13) Run ls | cat < AFileDoNotExist > output5 2>error5 | ls > output6
+
+You will see it prints:
+Error OpenInputFile:: No such file or directory
+Program exited with status 0
+SetIO Error, But defult IO resorted
+
+And no output6 is created as myShell ends terminates after resorted default stdin, stdout, stderr. 
+
+(14) Run ls | cat> output7
+     Run ./myecho > output7
+     Run cat output7
+argv[0]: ./myecho
+argv[1]: a
+argv[2]: b
+argv[3]: c
+Program exited with status 0
+
+This is correct as myShell overwrite the the content of an existing file. 
